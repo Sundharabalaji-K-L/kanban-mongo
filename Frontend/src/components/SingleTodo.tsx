@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, memo } from "react";
+import React, { useState, useRef, useEffect, memo, useCallback } from "react";
 import { Draggable } from "react-beautiful-dnd";
 import {
   Card,
@@ -7,49 +7,91 @@ import {
   IconButton,
   Menu,
   MenuItem,
-  Select,
   TextField,
+  Select,
   Button,
-  Box
+  Box,
+  FormControl,
+  InputLabel
 } from "@material-ui/core";
 import { MoreVert as MoreVertIcon } from "@material-ui/icons";
 import { AiFillEdit, AiFillDelete } from "react-icons/ai";
 import axios from "axios";
 import { Task } from "../models/models";
-import { makeStyles } from '@material-ui/core/styles';
+import { makeStyles } from "@material-ui/core/styles";
 
 const useStyles = makeStyles((theme) => ({
-    card:{
-       margin: theme.spacing(1),
-       position: "relative",
-       border: '1px solid #eee',
-       boxShadow:'0 1px 3px rgba(0,0,0,0.1)'
-    },
-    cardContent: {
-        padding: theme.spacing(1),
-    },
-     menuButton: {
-    position: 'absolute',
+  card: {
+    margin: theme.spacing(1),
+    position: "relative",
+    border: "1px solid #eee",
+    boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+  },
+  cardContent: {
+    padding: theme.spacing(1),
+  },
+  menuButton: {
+    position: "absolute",
     top: theme.spacing(0.5),
     right: theme.spacing(0.5),
   },
   editForm: {
-      display: 'flex',
-       flexDirection: 'column',
-    '& > *': {
+    display: "flex",
+    flexDirection: "column",
+    "& > *": {
       marginBottom: theme.spacing(1),
-    }
+    },
   },
   actions: {
-      marginTop: theme.spacing(1),
-     display: 'flex',
-     justifyContent: 'flex-end',
-      '& > *': {
-       marginLeft: theme.spacing(0.5),
-    }
-  }
+    marginTop: theme.spacing(1),
+    display: "flex",
+    justifyContent: "flex-end",
+    "& > *": {
+      marginLeft: theme.spacing(0.5),
+    },
+  },
+  modalBackdrop: {
+    position: "fixed",
+    top: 0,
+    left: 0,
+    width: "100%",
+    height: "100%",
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 1000,
+  },
+  modalContent: {
+    backgroundColor: "#fff",
+    padding: theme.spacing(2),
+    borderRadius: theme.spacing(1),
+    maxWidth: "90%",
+    maxHeight: "80vh",
+    overflowY: "auto",
+    width: "1039px",
+  },
+  modalTitle: {
+    marginBottom: theme.spacing(2),
+  },
+  saveButton: {
+    backgroundColor: "#000",
+    color: "#fff",
+    "&:hover": {
+      backgroundColor: "#000",
+    },
+  },
+  descriptionField: {
+    "& .MuiInputBase-root": {
+      whiteSpace: "normal !important",
+      maxHeight: "200px",
+      overflowY: "auto",
+    },
+    "& textarea": {
+      lineHeight: "1.5em",
+    },
+  },
 }));
-
 
 interface SingleTodoProps {
   index: number;
@@ -62,7 +104,7 @@ interface SingleTodoProps {
 const SingleTodo: React.FC<SingleTodoProps> = memo(
   ({ index, todo, owners, todos, setTodos }) => {
     const classes = useStyles();
-    const [edit, setEdit] = useState<boolean>(false);
+    const [isEditModalOpen, setIsEditModalOpen] = useState<boolean>(false);
     const [editTodo, setEditTask] = useState<string>(todo.todo);
     const [editDescription, setEditDescription] = useState<string>(
       todo.description || ""
@@ -73,7 +115,16 @@ const SingleTodo: React.FC<SingleTodoProps> = memo(
     const inputRef = useRef<HTMLInputElement>(null);
     useEffect(() => {
       inputRef.current?.focus();
-    }, [edit]);
+    }, [isEditModalOpen]);
+
+    const handleOpenEditModal = () => {
+      setIsEditModalOpen(true);
+      handleMenuClose();
+    };
+
+    const handleCloseEditModal = () => {
+      setIsEditModalOpen(false);
+    };
 
     const handleEdit = async (e: React.FormEvent) => {
       e.preventDefault();
@@ -97,7 +148,7 @@ const SingleTodo: React.FC<SingleTodoProps> = memo(
           prevTodos.map((t) => (t._id === todo._id ? updatedData : t))
         );
 
-        setEdit(false);
+        handleCloseEditModal();
       } catch (error) {
         console.error("Error updating task:", error);
       }
@@ -131,7 +182,49 @@ const SingleTodo: React.FC<SingleTodoProps> = memo(
           >
             <Card className={classes.card}>
               <CardContent className={classes.cardContent}>
-                {edit ? (
+                <Typography variant="h6">{todo.todo}</Typography>
+                <Typography variant="subtitle2">
+                  Description: {todo.description}
+                </Typography>
+                <Typography variant="subtitle2" color="textSecondary">
+                  Owner: {todo.owner}
+                </Typography>
+
+                <IconButton
+                  className={classes.menuButton}
+                  onClick={handleMenuOpen}
+                >
+                  <MoreVertIcon />
+                </IconButton>
+                <Menu
+                  anchorEl={anchorEl}
+                  open={Boolean(anchorEl)}
+                  onClose={handleMenuClose}
+                >
+                  <MenuItem
+                    onClick={() => {
+                      handleOpenEditModal();
+                    }}
+                  >
+                    <AiFillEdit style={{ marginRight: 8 }} /> Edit
+                  </MenuItem>
+                  <MenuItem
+                    onClick={() => {
+                      handleDelete();
+                      handleMenuClose();
+                    }}
+                  >
+                    <AiFillDelete style={{ marginRight: 8 }} /> Delete
+                  </MenuItem>
+                </Menu>
+              </CardContent>
+            </Card>
+            {isEditModalOpen && (
+              <div className={classes.modalBackdrop}>
+                <div className={classes.modalContent}>
+                  <Typography variant="h6" className={classes.modalTitle}>
+                    Edit Task
+                  </Typography>
                   <form onSubmit={handleEdit} className={classes.editForm}>
                     <TextField
                       label="Task"
@@ -145,72 +238,45 @@ const SingleTodo: React.FC<SingleTodoProps> = memo(
                       value={editDescription}
                       onChange={(e) => setEditDescription(e.target.value)}
                       fullWidth
+                      multiline
+                      rows={3}
+                      className={classes.descriptionField}
+                      InputProps={{
+                        inputComponent: "textarea",
+                      }}
                     />
-                    <Select
-                      label="Owner"
-                      value={editOwner}
-                      onChange={(e) => setEditOwner(e.target.value as string)}
-                      fullWidth
-                    >
-                      {owners.map((owner) => (
-                        <MenuItem key={owner} value={owner}>
-                          {owner}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                     <Box className={classes.actions}>
-                      <Button type="submit" color="primary" variant="contained">
+                    <FormControl fullWidth>
+                      <InputLabel id="owner-label">Owner</InputLabel>
+                      <Select
+                        labelId="owner-label"
+                        label="Owner"
+                        value={editOwner}
+                        onChange={(e) => setEditOwner(e.target.value as string)}
+                       
+                      >
+                        {owners.map((owner) => (
+                          <MenuItem key={owner} value={owner}>
+                            {owner}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                    <Box className={classes.actions}>
+                      <Button type="submit" className={classes.saveButton}>
                         Save
                       </Button>
                       <Button
-                        onClick={() => setEdit(false)}
+                        onClick={handleCloseEditModal}
                         color="secondary"
                         variant="outlined"
-                       >
+                      >
                         Cancel
                       </Button>
                     </Box>
                   </form>
-                ) : (
-                  <>
-                    <Typography variant="h6">{todo.todo}</Typography>
-                    <Typography variant="subtitle2">
-                      Description: {todo.description}
-                    </Typography>
-                    <Typography variant="subtitle2" color="textSecondary">
-                      Owner: {todo.owner}
-                    </Typography>
-                    
-                      <IconButton className={classes.menuButton} onClick={handleMenuOpen}>
-                        <MoreVertIcon />
-                      </IconButton>
-                      <Menu
-                        anchorEl={anchorEl}
-                        open={Boolean(anchorEl)}
-                        onClose={handleMenuClose}
-                      >
-                        <MenuItem
-                          onClick={() => {
-                            setEdit(true);
-                            handleMenuClose();
-                          }}
-                        >
-                          <AiFillEdit style={{ marginRight: 8 }} /> Edit
-                        </MenuItem>
-                        <MenuItem
-                          onClick={() => {
-                            handleDelete();
-                            handleMenuClose();
-                          }}
-                        >
-                          <AiFillDelete style={{ marginRight: 8 }} /> Delete
-                        </MenuItem>
-                      </Menu>
-                    
-                  </>
-                )}
-              </CardContent>
-            </Card>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </Draggable>

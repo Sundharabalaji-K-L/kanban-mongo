@@ -4,9 +4,8 @@ import {
   Paper,
   Typography,
   Button,
-  Box,
   makeStyles
-} from "@material-ui/core";  // Importing makeStyles correctly from @material-ui/core
+} from "@material-ui/core";
 import { Droppable } from "react-beautiful-dnd";
 import { Task } from "../models/models";
 import SingleTodo from "./SingleTodo";
@@ -20,17 +19,18 @@ interface TodoListProps {
   droppableId: string;
   title: string;
   updateOwners: (tasks: Task[]) => void;
+  showAddButton?: boolean; // Optional prop to control Add Task Button
 }
 
 const useStyles = makeStyles((theme) => ({
   listContainer: {
     padding: theme.spacing(2),
     borderRadius: theme.spacing(1),
-    height: 578, // Fixed height for the container
+    height: 578,
     display: "flex",
     flexDirection: "column",
     border: "1px solid #ddd",
-    boxShadow: `5px 5px 10px #D1D9E6, -5px -5px 10px #fff`,
+     boxShadow: `5px 5px 10px #D1D9E6, -5px -5px 10px #fff`,
     backgroundColor: '#f0f2f5',
     transition: 'all 0.3s ease',
     position: 'relative',
@@ -53,10 +53,10 @@ const useStyles = makeStyles((theme) => ({
       background: '#4caf50',
     },
   },
-  taskList: {
+   taskList: {
     flexGrow: 1,
-    overflowY: "auto", // Enable vertical scroll bar for the task list
-    padding: theme.spacing(0, 1),
+    overflowY: "auto",
+     padding: theme.spacing(0, 1),
     transition: 'all 0.3s ease',
     height: 'calc(100% - 50px)', // Reduced height to leave space for the button
     '&::-webkit-scrollbar': {
@@ -75,7 +75,7 @@ const useStyles = makeStyles((theme) => ({
     },
   },
   taskCount: {
-    display: 'flex',
+      display: 'flex',
     justifyContent: 'center',
     alignItems: 'center',
     marginLeft: theme.spacing(1),
@@ -84,11 +84,11 @@ const useStyles = makeStyles((theme) => ({
     borderRadius: '50%',
     minWidth: 24,
     minHeight: 24,
-    padding: theme.spacing(0.5),
+     padding: theme.spacing(0.5),
   },
   addTaskButton: {
-    position: 'absolute',  // Use absolute positioning to keep it at the bottom
-    bottom: theme.spacing(2),
+       position: 'absolute',
+        bottom: theme.spacing(2),
     left: '50%',
     transform: 'translateX(-50%)',
     marginBottom: theme.spacing(1),
@@ -96,89 +96,83 @@ const useStyles = makeStyles((theme) => ({
     alignItems: 'center',
     justifyContent: 'center',
     padding: theme.spacing(1, 2),
-    backgroundColor: '#000',  // Make the button black
-    color: '#fff',  // Make text white
+    backgroundColor: '#000',
+    color: '#fff',
     borderRadius: theme.spacing(1),
     cursor: 'pointer',
-    transition: 'none',  // Remove hover effect
-    "&:hover": {
-      backgroundColor: '#000', // Remove hover effect by keeping the same color
-    },
+       transition: 'none',
+     "&:hover": {
+      backgroundColor: '#000',
+      },
   },
   addTaskButtonText: {
     marginLeft: theme.spacing(0.5),
-  }
+  },
 }));
 
-const TodoList: React.FC<TodoListProps> = memo(({
-  tasks,
-  setTasks,
-  owners,
-  droppableId,
-  title,
-  updateOwners
-}) => {
-  const classes = useStyles();
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const headerClass = `${classes.listHeader} ${droppableId}`;
+const TodoList: React.FC<TodoListProps> = memo(
+  ({ tasks, setTasks, owners, droppableId, title, updateOwners, showAddButton = true }) => {
+    const classes = useStyles();
+    const [isDialogOpen, setIsDialogOpen] = useState(false);
+    const headerClass = `${classes.listHeader} ${droppableId}`;
 
-  const handleDialogToggle = useCallback(() => {
-    setIsDialogOpen(prev => !prev);
-  }, []);
+    const handleDialogToggle = useCallback(() => {
+      setIsDialogOpen((prev) => !prev);
+    }, []);
 
-  return (
-    <Grid item xs={12} md={4}>
-      <Paper className={classes.listContainer}>
-        <div className={headerClass}>
-          <Typography variant="h6">{title}</Typography>
-          <Typography variant="subtitle2" className={classes.taskCount}>
-            {tasks.length}
-          </Typography>
-        </div>
-        <Droppable droppableId={droppableId}>
-          {(provided, snapshot) => (
-            <div
-              ref={provided.innerRef}
-              {...provided.droppableProps}
-              className={classes.taskList}
-              style={{
-                background: snapshot.isDraggingOver ? "lightblue" : "transparent",
-              }}
-            >
-              {tasks.map((task, index) => (
-                <SingleTodo
-                  index={index}
-                  todos={tasks}
-                  owners={owners}
-                  todo={task}
-                  key={task._id}
-                  setTodos={setTasks}
-                />
-              ))}
-              {provided.placeholder}
-            </div>
-          )}
-        </Droppable>
-        {droppableId === "todo" && (
-          <Button onClick={handleDialogToggle} className={classes.addTaskButton}>
-            <AiOutlinePlus style={{ fontSize: '1.2em' }} />
-            <Typography className={classes.addTaskButtonText}>
-              Add Task
+    return (
+      <Grid item xs={12} md={4}>
+        <Paper className={classes.listContainer}>
+           <div className={headerClass}>
+            <Typography variant="h6">{title}</Typography>
+            <Typography variant="subtitle2" className={classes.taskCount}>
+              {tasks.length}
             </Typography>
-          </Button>
-        )}
-        {isDialogOpen && (
-          <InputField
-            setTodos={setTasks}
-            owners={owners}
-            updateOwners={updateOwners}
-            handleClose={handleDialogToggle}
-          />
-        )}
-      </Paper>
-    </Grid>
-  );
-});
+          </div>
+          <Droppable droppableId={droppableId}>
+            {(provided, snapshot) => (
+              <div
+                ref={provided.innerRef}
+                {...provided.droppableProps}
+                className={classes.taskList}
+                style={{
+                  background: snapshot.isDraggingOver ? "lightblue" : "transparent",
+                }}
+              >
+                {tasks.map((task, index) => (
+                  <SingleTodo
+                    index={index}
+                    todos={tasks}
+                    owners={owners}
+                    todo={task}
+                    key={task._id}
+                    setTodos={setTasks}
+                  />
+                ))}
+                {provided.placeholder}
+              </div>
+            )}
+          </Droppable>
+            {showAddButton && droppableId === "todo" && (
+            <Button onClick={handleDialogToggle} className={classes.addTaskButton}>
+              <AiOutlinePlus style={{ fontSize: '1.2em' }} />
+               <Typography className={classes.addTaskButtonText}>
+               Add Task
+            </Typography>
+            </Button>
+           )}
+           {isDialogOpen && (
+           <InputField
+              setTodos={setTasks}
+              owners={owners}
+              updateOwners={updateOwners}
+              handleClose={handleDialogToggle}
+             />
+           )}
+         </Paper>
+      </Grid>
+    );
+  }
+);
 
 export default TodoList;
- 
