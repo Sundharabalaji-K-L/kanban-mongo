@@ -34,22 +34,34 @@ const useStyles = makeStyles((theme) => ({
         minWidth: "80vh",
         maxHeight: "90vh",
         display: 'flex',
-       flexDirection: 'column', // Added flex direction to make card content static
+        flexDirection: 'column',
     },
-     modalTitle: {
+    modalTitle: {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
         marginBottom: theme.spacing(2),
-        paddingRight: theme.spacing(1), // Added some padding for the close button
+        paddingRight: theme.spacing(1),
+        position: 'relative', // Make sure the close button stays in the top-right corner
     },
-    userList:{
+    userList: {
         padding: theme.spacing(1),
-        flex: '1', // Added flex grow to allow user list to occupy the rest of space
-        overflowY: 'auto', // Added scroll only in the userList area
-           "& > * + *" : {
-            marginTop: theme.spacing(1)
-        }
+        flex: '1',
+        overflowY: 'auto',
+        "& > * + *": {
+            marginTop: theme.spacing(1),
+        },
+        // Customizing the scrollbar size
+        "&::-webkit-scrollbar": {
+            width: '8px', // Smaller width for the scrollbar
+        },
+        "&::-webkit-scrollbar-thumb": {
+            backgroundColor: '#888', // Color of the scrollbar thumb
+            borderRadius: '4px',
+        },
+        "&::-webkit-scrollbar-thumb:hover": {
+            backgroundColor: '#555', // Hover effect on the scrollbar thumb
+        },
     },
     userItem: {
         display: 'flex',
@@ -57,17 +69,17 @@ const useStyles = makeStyles((theme) => ({
         alignItems: 'center',
         border: '1px solid #eee',
         padding: theme.spacing(1),
-        "& > * + *" : {
-            marginLeft: theme.spacing(1)
-        }
+        "& > * + *": {
+            marginLeft: theme.spacing(1),
+        },
     },
-    actions:{
+    actions: {
         display: "flex",
     },
     editForm: {
         display: "flex",
         flexDirection: "column",
-        padding: theme.spacing(2)
+        padding: theme.spacing(2),
     },
     modalBackdrop: {
         position: "fixed",
@@ -84,8 +96,12 @@ const useStyles = makeStyles((theme) => ({
     deleteIcon: {
         color: '#dc3545',
     },
-    closeButton:{
-       marginLeft: 'auto'
+    closeButton: {
+        position: 'absolute', // Position close button absolutely in the top-right corner
+        top: 0,
+        right: 0,
+        padding: theme.spacing(1),
+        cursor: 'pointer', // Make it clear that it's clickable
     },
 }));
 
@@ -96,40 +112,40 @@ const UsersModal: React.FC<UsersModalProps> = React.memo(
         const [editUserId, setEditUserId] = useState<string | null>(null);
         const [editUserName, setEditUserName] = useState<string>("");
 
-        const handleEditUserModalOpen = useCallback((user: User)=>{
+        const handleEditUserModalOpen = useCallback((user: User) => {
             setEditUserId(user._id);
-            setEditUserName(user.name)
+            setEditUserName(user.name);
         }, [setEditUserName, setEditUserId]);
 
-        const handleEditUserModalClose = useCallback(()=>{
+        const handleEditUserModalClose = useCallback(() => {
             setEditUserId(null);
-            setEditUserName("")
+            setEditUserName("");
         }, [setEditUserName, setEditUserId]);
 
-
-        const handleEdit = async (e: React.FormEvent, id:string) => {
+        const handleEdit = async (e: React.FormEvent, id: string) => {
             e.preventDefault();
-            try{
+            try {
                 const response = await axios.put<User>(
                     `http://localhost:5555/user/update/${id}`,
-                    {name: editUserName}
+                    { name: editUserName }
                 );
                 const updatedUser = response.data;
                 updateUsers(updatedUser);
                 handleEditUserModalClose();
-            } catch(error) {
-                console.error('Error updating user', error)
+            } catch (error) {
+                console.error('Error updating user', error);
             }
-        }
+        };
 
         const handleDelete = async (id: string) => {
             try {
                 await axios.delete(`http://localhost:5555/user/delete/${id}`);
-                deleteUser(id)
+                deleteUser(id);
             } catch (error) {
                 console.error("Error deleting user:", error);
             }
         };
+
         return (
             <Dialog open={true} onClose={handleClose} fullWidth>
                 <div className={classes.modalBackdrop}>
@@ -144,7 +160,7 @@ const UsersModal: React.FC<UsersModalProps> = React.memo(
                             {users.map((user) => (
                                 <div key={user._id} className={classes.userItem}>
                                     {editUserId === user._id ? (
-                                        <form onSubmit={(e)=>handleEdit(e, user._id)} className={classes.editForm}>
+                                        <form onSubmit={(e) => handleEdit(e, user._id)} className={classes.editForm}>
                                             <TextField
                                                 label="User Name"
                                                 value={editUserName}
@@ -165,10 +181,10 @@ const UsersModal: React.FC<UsersModalProps> = React.memo(
                                         <>
                                             <Typography>{user.name}</Typography>
                                             <Box className={classes.actions}>
-                                                <IconButton onClick={()=>handleEditUserModalOpen(user)}>
-                                                    <AiFillEdit/>
+                                                <IconButton onClick={() => handleEditUserModalOpen(user)}>
+                                                    <AiFillEdit />
                                                 </IconButton>
-                                                <IconButton  onClick={()=>handleDelete(user._id)}>
+                                                <IconButton onClick={() => handleDelete(user._id)}>
                                                     <AiFillDelete className={classes.deleteIcon} />
                                                 </IconButton>
                                             </Box>
