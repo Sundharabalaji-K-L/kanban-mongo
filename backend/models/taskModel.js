@@ -1,27 +1,31 @@
 import mongoose from "mongoose";
 
-const bookSchema = mongoose.Schema({
-    'todo': {
-        type: String,
-        required: true
+// Define the schema for Task
+const taskSchema = mongoose.Schema(
+    {
+        todo: {
+            type: String,
+            required: true,
+        },
+        description: {
+            type: String,
+        },
+        owner: {
+            type: String,
+            required: true,
+        },
+        status: {
+            type: String,
+            required: true,
+        },
+        deadline: {
+            type: Date,
+        },
     },
-    'description': {
-        type: String
-    },
-    'owner': {
-        type: String,
-        required: true
-    },
-    'status': {
-        type: String,
-        required: true
+    {
+        timestamps: true,
     }
+);
 
-},
-{
-    timestamps: true
-}
-)
-
-
-export const Task = mongoose.model('tasks', bookSchema);
+// Create and export the Task model
+export const Task = mongoose.model("Task", taskSchema);
