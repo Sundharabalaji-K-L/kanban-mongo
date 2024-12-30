@@ -115,6 +115,42 @@ taskRouter.post('/user/create', async(request, response)=>{
     }
 })
 
+taskRouter.delete('/user/delete/:id', async(request, response)=>{
+    try{
+        const {id} = request.params;
+        const result = await User.findByIdAndDelete(id);
+
+        if(!result){
+            return response.status(404).send({message: 'user not found'})
+        }
+        return response.status(200).send({message: 'user has been deleted'})
+    }
+    catch(error){
+        return response.status(500).send({message: error.message});
+    }
+})
+
+taskRouter.put('/user/update/:id', async(request, response)=>{
+    try{
+        if(!request.body.name){
+            response.status(404).send({message: 'required all field'});
+        }
+
+        const {id} = request.params;
+        const result = await User.findByIdAndUpdate(id, request.body);
+
+        if(!result){
+            return response.status(404).send({message: "user not Found"})
+        }
+
+        return response.status(200).send({message: 'user has been updated'})
+    }
+
+    catch(error){
+        return response.status(500).send({message: error.message});
+    }
+})
+
 
 export default taskRouter;
 
