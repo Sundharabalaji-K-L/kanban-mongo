@@ -5,6 +5,7 @@ export interface Task {
   description: string
   owner: string;
   status: 'todo' | 'doing' | 'complete';
+  deadline?: string;
 }
 
 export interface TaskCreate {

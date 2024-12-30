@@ -153,9 +153,7 @@ const SingleTodo: React.FC<SingleTodoProps> = memo(
         const classes = useStyles();
         const [isEditModalOpen, setIsEditModalOpen] = useState<boolean>(false);
         const [editTodo, setEditTask] = useState<string>(todo.todo);
-        const [editDescription, setEditDescription] = useState<string>(
-            todo.description || ""
-        );
+        const [editDescription, setEditDescription] = useState<string>(todo.description || "");
         const [editOwner, setEditOwner] = useState<string>(todo.owner);
         const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
@@ -230,12 +228,16 @@ const SingleTodo: React.FC<SingleTodoProps> = memo(
                         <Card className={classes.card}>
                             <CardContent className={classes.cardContent}>
                                 <Typography variant="h6">{todo.todo}</Typography>
-                                <Typography variant="subtitle2">
-                                    Description: {todo.description}
-                                </Typography>
+                                {/* Remove description */}
                                 <Typography variant="subtitle2" color="textSecondary">
                                     Owner: {todo.owner}
                                 </Typography>
+                                {/* Show deadline */}
+                                {todo.deadline && (
+                                    <Typography variant="subtitle2" color="textSecondary">
+                                        Deadline: {new Date(todo.deadline).toLocaleDateString()}
+                                    </Typography>
+                                )}
 
                                 <IconButton
                                     className={classes.menuButton}
@@ -270,8 +272,8 @@ const SingleTodo: React.FC<SingleTodoProps> = memo(
                                     <div className={`${classes.modalContent} ${classes.customScrollbar}`}>
                                         <div className={classes.modalHeader}>
                                             <Typography variant="h6">Edit Task</Typography>
-                                            <IconButton 
-                                                className={classes.modalCloseButton} 
+                                            <IconButton
+                                                className={classes.modalCloseButton}
                                                 onClick={handleCloseEditModal}
                                             >
                                                 <CloseIcon />
@@ -335,7 +337,7 @@ const SingleTodo: React.FC<SingleTodoProps> = memo(
                             )}
                         </Card>
                     </div>
-                )} 
+                )}
             </Draggable>
         );
     }
