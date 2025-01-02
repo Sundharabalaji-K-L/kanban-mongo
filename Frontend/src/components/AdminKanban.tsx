@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import {
     Container,
     Grid,
@@ -34,7 +34,7 @@ const useStyles = makeStyles((theme) => ({
         marginTop: theme.spacing(2)
     },
     buttonContainer: {
-        display: 'flex', // Use flex to align buttons horizontally
+        display: 'flex',
     },
     addUserButton:{
         marginLeft: theme.spacing(2),
@@ -73,7 +73,21 @@ const AdminKanban: React.FC = () => {
     const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
     const [isUsersModalOpen, setIsUsersModalOpen] = useState(false);
     const [users, setUsers] = useState<User[]>([]);
+    const isMounted = useRef(true)
 
+    const fetchUsers = useCallback(async () => {
+        try {
+            const response = await axios.get('http://localhost:5555/users');
+            const fetchedUsers = response.data.data;
+            const _owners = fetchedUsers.map((rec: User)=>rec.name);
+            if(isMounted.current){
+                setOwnerList(_owners);
+                setUsers(fetchedUsers);
+            }
+        } catch (error) {
+            console.error("Error fetching users:", error);
+        }
+    }, []);
 
     const updateOwners = useCallback((newTasks: Task[] | Task) => {
         const tasksToAdd = Array.isArray(newTasks) ? newTasks : [newTasks];
@@ -91,8 +105,9 @@ const AdminKanban: React.FC = () => {
 
     useEffect(() => {
         let isMounted = true;
-        axios.get('http://localhost:5555/')
-            .then((response) => {
+        const fetchData = async () => {
+            try{
+                const response = await axios.get('http://localhost:5555/');
                 if (isMounted) {
                     const todoTasks = response.data.data.filter((task: Task) => task.status === 'todo');
                     const doingTasks = response.data.data.filter((task: Task) => task.status === 'doing');
@@ -104,25 +119,30 @@ const AdminKanban: React.FC = () => {
 
                     updateOwners([...todoTasks, ...doingTasks, ...completeTasks]);
                 }
-            });
 
+            }catch (error) {
+                console.error("Error fetching tasks:", error);
+            }
+
+        }
+        fetchData();
         return () => {
             isMounted = false;
         };
     }, [updateOwners]);
 
-    useEffect(()=>{
-        axios.get('http://localhost:5555/users')
-            .then((response)=>{
-                const _owners = response.data.data.map((rec: User)=>rec.name);
-                setOwnerList(_owners);
-                setUsers(response.data.data)
-            })
 
-    }, [])
+    useEffect(()=>{
+        fetchUsers()
+        return () => {
+            isMounted.current = false;
+        };
+    }, [fetchUsers])
+
+
     const onDragEnd = useCallback(async (result: DropResult) => {
         const { source, destination } = result;
-
+        if(!isMounted.current) return
         if (!destination) return;
 
         const sourceList =
@@ -156,12 +176,18 @@ const AdminKanban: React.FC = () => {
             const newDestList = [...destList];
             newDestList.splice(destination.index, 0, updatedTask);
 
-            setSourceList(newSourceList);
-            setDestList(newDestList);
-            updateOwners([...newSourceList, ...newDestList]);
+            if(isMounted.current){
+                setSourceList(newSourceList);
+                setDestList(newDestList);
+                updateOwners([...newSourceList, ...newDestList]);
+            }
+
         } catch (error) {
             console.error('Error updating task status:', error);
-            setSourceList(sourceList);
+            if(isMounted.current){
+                setSourceList(sourceList);
+            }
+
         }
     }, [tasks, doing, complete, updateOwners]);
 
@@ -187,18 +213,31 @@ const AdminKanban: React.FC = () => {
     const handleShowUsersModalClose = useCallback(()=>{
         setIsUsersModalOpen(false)
     }, [])
-    const updateUserList = useCallback((newUser:User)=>{
-        setOwnerList(prev => [...prev, newUser.name]);
-    }, [setOwnerList])
 
-    const updateUsers = useCallback((updatedUser: User) => {
-        setUsers(prevUsers => prevUsers.map(user => user._id === updatedUser._id ? updatedUser : user));
-    }, [setUsers]);
+    const  updateUserList = useCallback(async()=>{
+        if(!isMounted.current) return
+        await fetchUsers();
+    },[fetchUsers])
 
-    const deleteUser = useCallback((deletedUserId: string)=>{
-        setUsers(prev => prev.filter(user => user._id !== deletedUserId))
-    }, [setUsers]);
+
+    const updateUsers = useCallback(async()=>{
+        if(!isMounted.current) return
+        await fetchUsers();
+    }, [fetchUsers]);
+
+    const deleteUser = useCallback(async()=>{
+        if(!isMounted.current) return
+        await fetchUsers()
+    }, [fetchUsers]);
+
+
     const owners: string[] = ['All', ...ownersMenu];
+
+    useEffect(() => {
+        return () => {
+            isMounted.current = false
+        }
+    }, [])
 
     return (
         <Container>
@@ -221,18 +260,18 @@ const AdminKanban: React.FC = () => {
                         ))}
                     </Select>
                 </FormControl>
-                <Box className={classes.buttonContainer}> {/* Wrap buttons in a container */}
+                <Box className={classes.buttonContainer}>
                     <Button onClick={handleAddUserModalOpen} className={classes.addUserButton}>
                         <AiOutlineUserAdd/>
                         <span className={classes.addUserButtonText}>
-                   Add User
-                 </span>
+                            Add User
+                        </span>
                     </Button>
                     <Button onClick={handleShowUsersModalOpen} className={classes.showUserButton}>
                         <AiOutlineUser/>
                         <span className={classes.addUserButtonText}>
-                       Show Users
-                   </span>
+                            Show Users
+                        </span>
                     </Button>
                 </Box>
             </Box>
@@ -280,7 +319,6 @@ const AdminKanban: React.FC = () => {
                     users={users}
                     deleteUser={deleteUser}
                     updateUsers={updateUsers}
-
                 />
             )}
         </Container>

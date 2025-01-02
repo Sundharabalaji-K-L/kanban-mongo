@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect, useRef } from "react";
 import {
     Button,
     Dialog,
@@ -20,8 +20,8 @@ import { User } from "../models/models";
 interface UsersModalProps {
     handleClose: () => void;
     users: Array<User>;
-    updateUsers: (user: User) => void;
-    deleteUser: (userId: string) => void;
+    updateUsers: () => void;
+    deleteUser: () => void;
 }
 
 
@@ -111,6 +111,11 @@ const UsersModal: React.FC<UsersModalProps> = React.memo(
         const classes = useStyles();
         const [editUserId, setEditUserId] = useState<string | null>(null);
         const [editUserName, setEditUserName] = useState<string>("");
+        const [localUsers, setLocalUsers] = useState(users);
+        const isMounted = useRef(true)
+        useEffect(() => {
+            setLocalUsers(users)
+        }, [users])
 
         const handleEditUserModalOpen = useCallback((user: User) => {
             setEditUserId(user._id);
@@ -125,13 +130,16 @@ const UsersModal: React.FC<UsersModalProps> = React.memo(
         const handleEdit = async (e: React.FormEvent, id: string) => {
             e.preventDefault();
             try {
-                const response = await axios.put<User>(
+                await axios.put(
                     `http://localhost:5555/user/update/${id}`,
                     { name: editUserName }
                 );
-                const updatedUser = response.data;
-                updateUsers(updatedUser);
-                handleEditUserModalClose();
+                // Call updateUsers to trigger a fresh fetch and update the localUsers
+                if(isMounted.current){
+                    updateUsers();
+                    handleEditUserModalClose();
+                }
+
             } catch (error) {
                 console.error('Error updating user', error);
             }
@@ -140,11 +148,20 @@ const UsersModal: React.FC<UsersModalProps> = React.memo(
         const handleDelete = async (id: string) => {
             try {
                 await axios.delete(`http://localhost:5555/user/delete/${id}`);
-                deleteUser(id);
+                if(isMounted.current){
+                    // Call deleteUser to trigger a fresh fetch and update the localUsers
+                    deleteUser();
+                }
             } catch (error) {
                 console.error("Error deleting user:", error);
             }
         };
+
+        useEffect(() => {
+            return () => {
+                isMounted.current = false
+            }
+        }, [])
 
         return (
             <Dialog open={true} onClose={handleClose} fullWidth>
@@ -157,7 +174,7 @@ const UsersModal: React.FC<UsersModalProps> = React.memo(
                             </IconButton>
                         </DialogTitle>
                         <DialogContent className={classes.userList}>
-                            {users.map((user) => (
+                            {localUsers.map((user) => (
                                 <div key={user._id} className={classes.userItem}>
                                     {editUserId === user._id ? (
                                         <form onSubmit={(e) => handleEdit(e, user._id)} className={classes.editForm}>
