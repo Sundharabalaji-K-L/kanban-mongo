@@ -1,4 +1,11 @@
-import React, { useEffect, useState, useCallback, useRef } from "react";
+import React, {
+    useEffect,
+    useState,
+    useCallback,
+    useRef,
+    Dispatch,
+    SetStateAction
+} from "react";
 import {
     Container,
     Grid,
@@ -36,7 +43,7 @@ const useStyles = makeStyles((theme) => ({
     buttonContainer: {
         display: 'flex',
     },
-    addUserButton:{
+    addUserButton: {
         marginLeft: theme.spacing(2),
         display: 'flex',
         alignItems: 'center',
@@ -46,7 +53,7 @@ const useStyles = makeStyles((theme) => ({
         borderRadius: theme.spacing(1),
         cursor: 'pointer',
     },
-    showUserButton:{
+    showUserButton: {
         marginLeft: theme.spacing(1),
         display: 'flex',
         alignItems: 'center',
@@ -56,7 +63,7 @@ const useStyles = makeStyles((theme) => ({
         borderRadius: theme.spacing(1),
         cursor: 'pointer',
     },
-    addUserButtonText:{
+    addUserButtonText: {
         marginLeft: theme.spacing(1)
     }
 
@@ -79,8 +86,8 @@ const AdminKanban: React.FC = () => {
         try {
             const response = await axios.get('http://localhost:5555/users');
             const fetchedUsers = response.data.data;
-            const _owners = fetchedUsers.map((rec: User)=>rec.name);
-            if(isMounted.current){
+            const _owners = fetchedUsers.map((rec: User) => rec.name);
+            if (isMounted.current) {
                 setOwnerList(_owners);
                 setUsers(fetchedUsers);
             }
@@ -106,7 +113,7 @@ const AdminKanban: React.FC = () => {
     useEffect(() => {
         let isMounted = true;
         const fetchData = async () => {
-            try{
+            try {
                 const response = await axios.get('http://localhost:5555/');
                 if (isMounted) {
                     const todoTasks = response.data.data.filter((task: Task) => task.status === 'todo');
@@ -120,7 +127,7 @@ const AdminKanban: React.FC = () => {
                     updateOwners([...todoTasks, ...doingTasks, ...completeTasks]);
                 }
 
-            }catch (error) {
+            } catch (error) {
                 console.error("Error fetching tasks:", error);
             }
 
@@ -132,7 +139,7 @@ const AdminKanban: React.FC = () => {
     }, [updateOwners]);
 
 
-    useEffect(()=>{
+    useEffect(() => {
         fetchUsers()
         return () => {
             isMounted.current = false;
@@ -142,7 +149,7 @@ const AdminKanban: React.FC = () => {
 
     const onDragEnd = useCallback(async (result: DropResult) => {
         const { source, destination } = result;
-        if(!isMounted.current) return
+        if (!isMounted.current) return
         if (!destination) return;
 
         const sourceList =
@@ -176,7 +183,7 @@ const AdminKanban: React.FC = () => {
             const newDestList = [...destList];
             newDestList.splice(destination.index, 0, updatedTask);
 
-            if(isMounted.current){
+            if (isMounted.current) {
                 setSourceList(newSourceList);
                 setDestList(newDestList);
                 updateOwners([...newSourceList, ...newDestList]);
@@ -184,7 +191,7 @@ const AdminKanban: React.FC = () => {
 
         } catch (error) {
             console.error('Error updating task status:', error);
-            if(isMounted.current){
+            if (isMounted.current) {
                 setSourceList(sourceList);
             }
 
@@ -192,10 +199,26 @@ const AdminKanban: React.FC = () => {
     }, [tasks, doing, complete, updateOwners]);
 
     const filterTodos = useCallback((todoList: Task[]) => {
-        return filter === 'All'
-            ? todoList
-            : todoList.filter(todo => todo.owner === filter);
-    }, [filter]);
+        if (filter === 'All') {
+            return todoList;
+        }
+        const user = users.find(user => user._id === filter);
+
+        return todoList.filter(todo => todo.owner === (user ? user._id : filter));
+    }, [filter, users]);
+
+    const getAssignedUsers = useCallback(() => {
+        const allTasks = [...tasks, ...doing, ...complete];
+        const assignedUserIds = new Set(allTasks.map(task => task.owner).filter(owner => owner != null));
+        return users.filter(user => assignedUserIds.has(user._id));
+    }, [tasks, doing, complete, users]);
+
+
+    const assignedUsers = getAssignedUsers();
+
+    useEffect(()=>{
+        console.log(assignedUsers)
+    }, [assignedUsers])
 
     const handleAddUserModalOpen = useCallback(() => {
         setIsAddUserModalOpen(true);
@@ -206,27 +229,27 @@ const AdminKanban: React.FC = () => {
     }, []);
 
 
-    const handleShowUsersModalOpen = useCallback(()=>{
+    const handleShowUsersModalOpen = useCallback(() => {
         setIsUsersModalOpen(true)
     }, [])
 
-    const handleShowUsersModalClose = useCallback(()=>{
+    const handleShowUsersModalClose = useCallback(() => {
         setIsUsersModalOpen(false)
     }, [])
 
-    const  updateUserList = useCallback(async()=>{
-        if(!isMounted.current) return
+    const updateUserList = useCallback(async () => {
+        if (!isMounted.current) return
         await fetchUsers();
-    },[fetchUsers])
+    }, [fetchUsers])
 
 
-    const updateUsers = useCallback(async()=>{
-        if(!isMounted.current) return
+    const updateUsers = useCallback(async () => {
+        if (!isMounted.current) return
         await fetchUsers();
     }, [fetchUsers]);
 
-    const deleteUser = useCallback(async()=>{
-        if(!isMounted.current) return
+    const deleteUser = useCallback(async () => {
+        if (!isMounted.current) return
         await fetchUsers()
     }, [fetchUsers]);
 
@@ -253,22 +276,23 @@ const AdminKanban: React.FC = () => {
                         }}
                         label="Filter By Owner"
                     >
-                        {owners.map(owner => (
-                            <MenuItem key={owner} value={owner}>
-                                {owner}
+                        <MenuItem key="All" value="All">All</MenuItem>
+                        {assignedUsers.map(user => (
+                            <MenuItem key={user._id} value={user._id}>
+                                {user.name}
                             </MenuItem>
                         ))}
                     </Select>
                 </FormControl>
                 <Box className={classes.buttonContainer}>
                     <Button onClick={handleAddUserModalOpen} className={classes.addUserButton}>
-                        <AiOutlineUserAdd/>
+                        <AiOutlineUserAdd />
                         <span className={classes.addUserButtonText}>
                             Add User
                         </span>
                     </Button>
                     <Button onClick={handleShowUsersModalOpen} className={classes.showUserButton}>
-                        <AiOutlineUser/>
+                        <AiOutlineUser />
                         <span className={classes.addUserButtonText}>
                             Show Users
                         </span>
@@ -286,6 +310,7 @@ const AdminKanban: React.FC = () => {
                         title="Todo"
                         updateOwners={updateOwners}
                         showAddButton={true}
+                        users={users} // Pass users here
                     />
                     <TodoList
                         tasks={filterTodos(doing)}
@@ -295,6 +320,7 @@ const AdminKanban: React.FC = () => {
                         title="Doing"
                         updateOwners={updateOwners}
                         showAddButton={false}
+                        users={users} // Pass users here
                     />
                     <TodoList
                         tasks={filterTodos(complete)}
@@ -304,6 +330,7 @@ const AdminKanban: React.FC = () => {
                         title="Complete"
                         updateOwners={updateOwners}
                         showAddButton={false}
+                        users={users} // Pass users here
                     />
                 </Grid>
             </DragDropContext>

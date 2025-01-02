@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, memo } from "react";
+import React, { useState, useRef, useEffect, memo, useCallback } from "react";
 import { Draggable } from "react-beautiful-dnd";
 import {
     Card,
@@ -17,7 +17,7 @@ import {
 import { MoreVert as MoreVertIcon, Close as CloseIcon } from "@material-ui/icons";
 import { AiFillEdit, AiFillDelete } from "react-icons/ai";
 import axios from "axios";
-import { Task } from "../models/models";
+import { Task, User } from "../models/models";
 import { makeStyles } from "@material-ui/core/styles";
 
 const useStyles = makeStyles((theme) => ({
@@ -146,10 +146,11 @@ interface SingleTodoProps {
     owners: Array<string>;
     todos: Array<Task>;
     setTodos: React.Dispatch<React.SetStateAction<Array<Task>>>;
+    users: Array<User>;
 }
 
 const SingleTodo: React.FC<SingleTodoProps> = memo(
-    ({ index, todo, owners, todos, setTodos }) => {
+    ({ index, todo, owners, todos, setTodos, users }) => {
         const classes = useStyles();
         const [isEditModalOpen, setIsEditModalOpen] = useState<boolean>(false);
         const [editTodo, setEditTask] = useState<string>(todo.todo);
@@ -161,6 +162,13 @@ const SingleTodo: React.FC<SingleTodoProps> = memo(
         useEffect(() => {
             inputRef.current?.focus();
         }, [isEditModalOpen]);
+
+        const getUserNameById = useCallback((id: string | null) => {
+            if (!id) return "Unassigned";
+            const user = users.find(user => user._id === id)
+            return user ? user.name : "Unassigned";
+
+        }, [users]);
 
         const handleOpenEditModal = () => {
             setIsEditModalOpen(true);
@@ -230,7 +238,7 @@ const SingleTodo: React.FC<SingleTodoProps> = memo(
                                 <Typography variant="h6">{todo.todo}</Typography>
                                 {/* Remove description */}
                                 <Typography variant="subtitle2" color="textSecondary">
-                                    Owner: {todo.owner}
+                                    Owner: {getUserNameById(todo.owner)}
                                 </Typography>
                                 {/* Show deadline */}
                                 {todo.deadline && (
@@ -310,9 +318,9 @@ const SingleTodo: React.FC<SingleTodoProps> = memo(
                                                             value={editOwner}
                                                             onChange={(e) => setEditOwner(e.target.value as string)}
                                                         >
-                                                            {owners.map((owner) => (
-                                                                <MenuItem key={owner} value={owner}>
-                                                                    {owner}
+                                                            {users.map((user) => (
+                                                                <MenuItem key={user._id} value={user._id}>
+                                                                    {user.name}
                                                                 </MenuItem>
                                                             ))}
                                                         </Select>

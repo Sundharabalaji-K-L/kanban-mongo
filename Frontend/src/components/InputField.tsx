@@ -8,19 +8,22 @@ import {
     TextField,
     Select,
     MenuItem,
+    FormControl,
+    InputLabel,
 } from "@material-ui/core";
 import axios from "axios";
-import { Task } from "../models/models";
+import { Task, User } from "../models/models";
 
 interface InputFieldProps {
     setTodos: React.Dispatch<React.SetStateAction<Task[]>>;
     owners: Array<string>;
     updateOwners: (tasks: Task[]) => void;
     handleClose: () => void;
+    users: Array<User>;
 }
 
 const InputField: React.FC<InputFieldProps> = React.memo(
-    ({ setTodos, owners, updateOwners, handleClose }) => {
+    ({ setTodos, owners, updateOwners, handleClose, users }) => {
         // State to manage form fields including task details and deadline
         const [taskDetails, setTaskDetails] = useState({
             todo: "",
@@ -108,23 +111,20 @@ const InputField: React.FC<InputFieldProps> = React.memo(
                         style={{ marginBottom: 16 }}
                     />
                     {/* Owner Select */}
-                    <Select
-                        value={taskDetails.owner}
-                        onChange={handleInputChange("owner")}
-                        displayEmpty
-                        fullWidth
-                        style={{ marginBottom: 16 }}
-                        required
-                    >
-                        <MenuItem value="" disabled>
-                            Select Owner
-                        </MenuItem>
-                        {owners.map((owner) => (
-                            <MenuItem key={owner} value={owner}>
-                                {owner}
-                            </MenuItem>
-                        ))}
-                    </Select>
+                    <FormControl fullWidth style={{ marginBottom: 16 }}>
+                        <InputLabel id="owner-label">Owner</InputLabel>
+                        <Select
+                            labelId="owner-label"
+                            id="owner"
+                            value={taskDetails.owner}
+                            onChange={handleInputChange("owner")}
+                            label="Owner"
+                        >
+                            {users.map(user =>(
+                                <MenuItem key={user._id} value={user._id}>{user.name}</MenuItem>
+                            ))}
+                        </Select>
+                    </FormControl>
                     {/* Deadline Date Picker */}
                     <TextField
                         label="Deadline"
